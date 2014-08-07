@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pong Device - TakeTwo</title>
+        
+        <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        
+        <script>
+            var registered;
+            var startOrientation = null;
+            var socket;
+            
+            window.onload = function(){
+                socket = io.connect("192.168.2.21");
+                
+                // Send the new device to the server
+                socket.emit("connect mobile", {
+                        room: "dev"
+                    },
+                    function(data){
+                        if(data.registered){
+                            registered = true;
+                            $('body').append(data);
+                        }
+                        else{
+                            $('body').append(data.error);
+                        }
+                    }
+                );
+                
+                    
+                window.addEventListener('deviceorientation', deviceOrientationHandler);
+                function deviceOrientationHandler(event) {
+                    if(startOrientation == null && event.alpha != 0 && event.beta != 0){
+                        startOrientation = {alpha: event.alpha, beta: event.beta};
+                    }
+                    
+                    if(registered && startOrientation != null){
+                        socket.emit('update movement', { 
+                                alpha: -Math.round(event.alpha - startOrientation.alpha), 
+                                beta: Math.round(event.beta - startOrientation.beta)
+                        });
+                        $("body").html(Math.round(event.alpha - startOrientation.alpha) + "<br>" + Math.round(event.beta - startOrientation.beta));
+                    }
+                }
+                
+            };
+            
+        </script>
+    </head>
+    <body>
+        
+    </body>
+</html>
