@@ -12,7 +12,7 @@ var Paddle = function(){
     obj.ai;
     obj.position;
     obj.player;
-    obj.paddlespeed = 20;
+    obj.paddlespeed = 500;
     var bouncerate = (4.5 * Math.PI / 12);
     
     // On init we determine wheter the peddle has to be vertical or horizontal
@@ -79,9 +79,9 @@ var Paddle = function(){
             if((obj.position == 1 && balls[0].vx > 0) || (obj.position == 0 && balls[0].vx < 0)){
                 if(ny){
                     if(obj.y - 10 > ny - (obj.height / 2))
-                        obj.y -= obj.paddlespeed;
+                        obj.y -= obj.paddlespeed * dt;
                     else if(obj.y + 10 < ny - (obj.height / 2))
-                        obj.y += obj.paddlespeed;
+                        obj.y += obj.paddlespeed * dt;
                 }
                 else if(!ny){
                     obj.y = balls[0].y - (obj.height / 1.2);
@@ -91,20 +91,13 @@ var Paddle = function(){
             if((obj.position == 2 && balls[0].vy < 0) || (obj.position == 3 && balls[0].vy > 0)){
                 if(nx){
                     if(obj.x - 10 > nx - (obj.width / 2))
-                        obj.x -= obj.paddlespeed;
+                        obj.x -= obj.paddlespeed * dt;
                     else if(obj.x + 10 < nx - (obj.width / 2))
-                        obj.x += obj.paddlespeed;
+                        obj.x += obj.paddlespeed * dt;
                 }
                 else if(!nx){
                     obj.x = balls[0].x - (obj.width / 1.2);
                 }
-            }
-            
-            // Send all the data to the server
-            if(host){
-                socket.emit('update paddles', {
-                    data: 1
-                });
             }
         }
     };
@@ -115,25 +108,19 @@ var Paddle = function(){
     obj.checkCollision = function(){
         // Check position of all the balls
         balls.forEach(function(ball){
-            if(ball.x > canvas.width - 100 || ball.x < 100){
-                if((ball.x + ball.radius + ball.vx > obj.x) && (ball.y > obj.y && ball.y < (obj.y + obj.height)) && obj.position == 1 && ball.vx > 0){
-                    ball.vx = -ball.vx;
-                    obj.collide(ball);
-                }                    
-                if((ball.x + ball.vx < obj.x + obj.width) && (ball.y > obj.y && ball.y < (obj.y + obj.height)) && (obj.position == 0) && ball.vx < 0){
+            if(ball.x > canvas.width - 200 || ball.x < 200){
+                if( ((ball.x + ball.radius + (ball.vx * dt) > obj.x) && (ball.y > obj.y && ball.y < (obj.y + obj.height)) && obj.position == 1 && (ball.vx * dt) > 0) ||
+                    ((ball.x - ball.radius + (ball.vx * dt) < obj.x + obj.width) && (ball.y > obj.y && ball.y < (obj.y + obj.height)) && (obj.position == 0) && (ball.vx * dt) < 0)){
                     ball.vx = -ball.vx;
                     obj.collide(ball);
                 }
             }
-            if(ball.y > canvas.height - 100 || ball.y < 100){
-                if((ball.y + ball.radius + ball.vy > obj.y) && (ball.x > obj.x && ball.x < (obj.x + obj.width)) && obj.position == 3 && ball.vy > 0){
+            if(ball.y > canvas.height - 200 || ball.y < 200){
+                if( ((ball.y + ball.radius + (ball.vy * dt) > obj.y) && (ball.x > obj.x && ball.x < (obj.x + obj.width)) && obj.position == 3 && (ball.vy * dt) > 0) ||
+                    ((ball.y - ball.radius + (ball.vy * dt) < obj.y + obj.height) && (ball.x > obj.x && ball.x < (obj.x + obj.width)) && (obj.position == 2) && (ball.vy * dt) < 0)){
                     ball.vy = -ball.vy;
                     obj.collide(ball);
                 }                    
-                if((ball.y + ball.vy < obj.y + obj.height) && (ball.x > obj.x && ball.x < (obj.x + obj.width)) && (obj.position == 2) && ball.vy < 0){
-                    ball.vy = -ball.vy;
-                    obj.collide(ball);
-                }
             }
         });
         
@@ -160,7 +147,7 @@ var Paddle = function(){
     // Calculate the bounce angle and give new directions to the ball
     obj.calculateBounce = function(ball){
         var speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-        var speedacc = (Math.abs(speed) < 20) ? 0.5 : 0;
+        var speedacc = (Math.abs(speed) < 700) ? 25 : 0;
     
         if(obj.position == 0 || obj.position == 1){
             var relativeIntersectY = (obj.y + (obj.height / 2)) - ball.y;
@@ -187,28 +174,28 @@ var Paddle = function(){
     
     // Calculate new position for the AI paddle (Y)
     obj.calculatePaddleY = function(ball){
-        var cy = ball.vy * (735 / Math.abs(ball.vx)) + ball.y;
+        var cy = ball.vy * ((cheight - 32) / Math.abs(ball.vx)) + ball.y;
         var up = (ball.vy < 0);
-        var b = Math.abs(Math.floor(cy / 750));
+        var b = Math.abs(Math.floor(cy / cheight));
         var r = Math.abs(Math.floor(cy/b) % 2);
-        var ry = cy % 750;
+        var ry = cy % cheight;
         //console.log({cy: cy, up: up, b: b, r: r, ry: ry});
         
         if((!up && (b == 2 && r == 1)) || b == 0)
             ny = ry;
         else if(!up)
-            ny = 750 - (ry);
+            ny = cheight - (ry);
         else if(up && b == 1 || (b > 2))
             ny = Math.abs(ry);
         else
-            ny = (ry) + 750;
+            ny = (ry) + cheight;
 
         
         if(b > 0){
             if(up)
                 var tnx = Math.abs(ball.x - Math.abs((ball.y/ball.vy) * ball.vx));
             else
-                var tnx = Math.abs(ball.x - Math.abs(((750 - ball.y)/ball.vy) * ball.vx));
+                var tnx = Math.abs(ball.x - Math.abs(((cheight - ball.y)/ball.vy) * ball.vx));
             nx = obj.affectPaddleX(tnx);
         }
         
@@ -219,28 +206,28 @@ var Paddle = function(){
     
     // Calculate new position for the AI paddle (X)
     obj.calculatePaddleX = function(ball){    
-        var cx = ball.vx * (735 / Math.abs(ball.vy)) + ball.x;
+        var cx = ball.vx * ((cwidth - 32) / Math.abs(ball.vy)) + ball.x;
         var left = (ball.vx < 0);
-        var b = Math.abs(Math.floor(cx / 750));
+        var b = Math.abs(Math.floor(cx / cwidth));
         var r = Math.abs(Math.floor(cx/b) % 2);
-        var rx = cx % 750;
+        var rx = cx % cwidth;
         
         //console.log({cx: cx, left: left, b: b, r: r, rx: rx});
         
         if((!left && (b == 2)) || b == 0)
             nx = rx;
         else if(!left)
-            nx = 750 - (rx);
+            nx = cwidth - (rx);
         else if(left && b == 1 || (b > 2))
             nx = Math.abs(rx);
         else
-            nx = (rx) + 750;
+            nx = (rx) + cwidth;
 
         if(b > 0){
             if(left)
                 var tny = Math.abs(ball.y - Math.abs((ball.x/ball.vx) * ball.vy));
             else
-                var tny = Math.abs(ball.y - Math.abs(((750 - ball.x)/ball.vx) * ball.vy));
+                var tny = Math.abs(ball.y - Math.abs(((cwidth - ball.x)/ball.vx) * ball.vy));
             ny = obj.affectPaddleY(tny);
             
         }
@@ -252,15 +239,15 @@ var Paddle = function(){
     // Affect the paddles new Y position so it wont always try to hit the center of the paddle
     // The lower the difficulty number, the harder the player will be
     obj.affectPaddleY = function(sny){
-        var deviation = ((Math.random() * (obj.height / 4)));
-        deviation = (Math.random < .5) ? deviation : -deviation;
+        var deviation = ((Math.random() * (obj.height / 4.5)));
+        deviation = (Math.random() < .5) ? deviation : -deviation;
         return sny + deviation;
     };
     
     // Affect the paddles new X position so it wont always try to hit the center of the paddle
     // The lower the difficulty number, the harder the player will be
     obj.affectPaddleX = function(snx){
-        var deviation = ((Math.random() * (obj.width / 4)));
+        var deviation = ((Math.random() * (obj.width / 4.5)));
         deviation = (Math.random() < .5) ? deviation : -deviation;
         return snx + deviation;
     };

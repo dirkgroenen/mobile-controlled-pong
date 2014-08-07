@@ -31,17 +31,9 @@ var players = [],
     nx,
     prevpaddlehit,
     socket,
-    host;
-
-var stats = new Stats();
-stats.setMode(1); // 0: fps, 1: ms
-
-// Align top-left
-stats.domElement.style.position = 'absolute';
-stats.domElement.style.left = '0px';
-stats.domElement.style.top = '0px';
-
-document.body.appendChild( stats.domElement );
+    host,
+    lastframetime = null,
+    dt = 0.016;
 
 var Pong = function(){
     var obj = this; // Catch this;
@@ -66,10 +58,8 @@ var Pong = function(){
     
     // Draw all elements
     obj.drawgame = function(){
-        // Draw the balls
-        balls.forEach(function(ball){
-            ball.draw();
-        });
+        // Draw the ball
+        balls[0].draw();
         
         // Draw the paddles
         players.forEach(function(player){
@@ -79,29 +69,38 @@ var Pong = function(){
     
     // Clear the canvas
     obj.clear = function(){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, 20, canvas.height);
+        ctx.fillRect(canvas.width - 20, 0, 20, canvas.height);
+        ctx.fillRect(0, 0, canvas.width, 20);
+        ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+        
+        ctx.fillRect(balls[0].x - 10, balls[0].y - 10, 20, 20);
     };
     
-    var gameloop = function(){
-        stats.begin();
+    var gameloop = function(t){
+        
+        // Calculate the delta time
+        dt = (lastframetime) ? ((t - lastframetime)/1000) : 0.016;
+        dt = (dt < 0) ? 0.016 : dt;
+        
+        // Store last frame time
+        lastframetime = t;
+    
         // Clear canvas
         obj.clear();
         
         // Draw everyting
         obj.drawgame();
-        
-        stats.end();
+            
         // Repeat loop
         if(!obj.gameover)
             requestAnimFrame(gameloop);
     };
     
     obj.start = function(){
-        // This sends the signal 'new room' to the server, along with data containing the room name id. 
-        // For live deployment, this should be a random string. 
-        // See the full documentation for example socket.emit('new room', { room: “lolcats”});
         obj.running = true;
-        gameloop();
+        gameloop(Date.now());
     }
     
     /* 
@@ -166,7 +165,7 @@ window.onload = function(){
     });
     
     // Count down so players can add to the room
-    var seconds = 5;
+    var seconds = 1;
     var waitingInterval = setInterval(function(){
         $(".seconds").html("Waiting for other players. " + (seconds) + " Seconds left");
         

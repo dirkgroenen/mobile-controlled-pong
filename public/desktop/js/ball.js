@@ -1,10 +1,10 @@
 var Ball = function(){
     var obj = this; //catch this
-    obj.vx = 8;
-    obj.vy = 9;
+    obj.vx = (Math.random() < .5) ? 260 : -260;
+    obj.vy = (Math.random() < .5) ? 260 : -260;
     obj.radius = 8;
-    obj.x = (Math.random()*canvas.width) +1;
-    obj.y = (Math.random()*canvas.height) + 1;
+    obj.x = canvas.width / 2;
+    obj.y = canvas.height / 2 + 1;
     obj.freewalls = {l: true, t: true, r: true, b: true};
     
     // Check which walls are free from players
@@ -27,8 +27,8 @@ var Ball = function(){
         obj.checkWallCollision();
         
         // Update the position
-        obj.x += obj.vx;
-        obj.y += obj.vy;
+        obj.x += (obj.vx * dt);
+        obj.y += (obj.vy * dt);
         
         // Draw to canvas
         ctx.beginPath();
@@ -42,17 +42,17 @@ var Ball = function(){
      */
     obj.checkWallCollision = function(){
         // Check top wall
-        if((obj.y - obj.radius < 0 && obj.vy < 0 && obj.freewalls.t) || (obj.y + obj.radius > canvas.height && obj.vy > 0 && obj.freewalls.b))
+        if((obj.y - obj.radius < 0 && (obj.vy * dt) < 0 && obj.freewalls.t) || (obj.y + obj.radius > canvas.height && (obj.vy * dt) > 0 && obj.freewalls.b))
             obj.vy = -obj.vy;
         
-        if((obj.x - obj.radius < 0 && obj.vx < 0 && obj.freewalls.l) || (obj.x + obj.radius > canvas.width && obj.vx > 0 && obj.freewalls.r))
+        if((obj.x - obj.radius < 0 && (obj.vx * dt) < 0 && obj.freewalls.l) || (obj.x + obj.radius > canvas.width && (obj.vx * dt) > 0 && obj.freewalls.r))
             obj.vx = -obj.vx;
         
         // Game over checks
-        if((obj.y - obj.radius < 0 && !obj.freewalls.t) || (obj.y + obj.radius > canvas.height && !obj.freewalls.b))
+        if((obj.y - obj.radius < 0 && (obj.vy * dt) < 0 && !obj.freewalls.t) || (obj.y + obj.radius > canvas.height && (obj.vy * dt) && !obj.freewalls.b))
             gameover();
                 
-        if((obj.x - obj.radius < 0 && !obj.freewalls.l) || (obj.x + obj.radius > canvas.width && !obj.freewalls.r))
+        if((obj.x - obj.radius < 0 && (obj.vx * dt) < 0 && !obj.freewalls.l) || (obj.x + obj.radius > canvas.width && (obj.vx * dt) > 0 && !obj.freewalls.r))
             gameover();
         
         
